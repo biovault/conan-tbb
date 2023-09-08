@@ -76,9 +76,9 @@ runs:
         conan profile show action_build
         export CONAN_SKIP_BROKEN_SYMLINKS_CHECK=1
         if [[ ${{ inputs.conan-build-os }} == "Macos" ]]; then
-          conan create . flann/1.9.1@lkeb/stable -pr:h action_build -pr:b action_build -s build_type=Release
+          conan create . faiss/1.7.3@lkeb/stable -pr:h action_build -pr:b action_build -s build_type=Release
         else
-          conan create . flann/1.9.1@lkeb/stable -pr:h action_build -pr:b action_build -s build_type=Release -tf None
+          conan create . faiss/1.7.3@lkeb/stable -pr:h action_build -pr:b action_build -s build_type=Release -tf None
         fi
 
       shell: bash

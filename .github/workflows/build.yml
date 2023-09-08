@@ -1,4 +1,4 @@
-name: flann conan package
+name: faiss conan package
 
 on:
   push:
