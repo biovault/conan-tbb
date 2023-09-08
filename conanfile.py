@@ -22,6 +22,7 @@ class FaissConan(ConanFile):
     default_options = {"shared": False, "testing": False}
     generators = "CMakeDeps"
     exports = "cmake/*"
+    requires = "openblas/0.3.20"
 
     def source(self):
         self.run("git clone https://github.com/facebookresearch/faiss.git")
