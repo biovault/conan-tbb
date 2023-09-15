@@ -1,9 +1,9 @@
 from conans import ConanFile, tools
 from conan.tools.cmake import CMakeDeps, CMake, CMakeToolchain
-from conans.tools import os_info, SystemPackageTool
+from conans.tools import os_info, SystemPackageTool, get_env
 import os
 import shutil
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 required_conan_version = ">=1.51.0"
 
@@ -19,10 +19,14 @@ class FaissConan(ConanFile):
     topics = ("clustering", "similarity")
     settings = "os", "compiler", "build_type", "arch"
     options = {"shared": [True, False], "testing": [True, False]}
-    default_options = {"shared": False, "testing": False}
+    default_options = {"shared": True, "testing": False}
     generators = "CMakeDeps"
     exports = "cmake/*"
-    requires = "openblas/0.3.20"
+    # provide BLAS_ROOT - 
+    # On Windows side load this dependency with nuget 
+    # e.g. D:/temp/testopenblas/OpenBLAS.0.2.14.1/lib/native
+    # with sub dirs bin libb include
+    BLAS_ROOT = Path(os.environ["BLAS_ROOT"])
 
     def source(self):
         self.run("git clone https://github.com/facebookresearch/faiss.git")
@@ -56,6 +60,18 @@ class FaissConan(ConanFile):
         tc.variables["BUILD_TESTING"] = "ON" if self.options.testing else "OFF"
         tc.variables["BUILD_SHARED_LIBS"] = "ON" if self.options.shared else "OFF"
 
+        if self.settings.os == "Windows":
+            # tc.variables["MKL_ROOT_DIR"] = "D:/intelmkl"
+            tc.variables["BLA_STATIC"] = "ON"
+            tc.variables["BLAS_LIBRARY:FILEPATH"] = PurePosixPath(self.BLAS_ROOT / "lib/x64/libopenblas.dll.a")
+            tc.variables["BLAS_LIBRARIES"] = PurePosixPath(self.BLAS_ROOT /  "lib/x64/libopenblas.dll.a")
+            tc.variables["LAPACK_LIBRARY:FILEPATH"] = PurePosixPath(self.BLAS_ROOT / "lib/x64/libopenblas.dll.a")
+            tc.variables["LAPACK_LIBRARIES"] = PurePosixPath(self.BLAS_ROOT / "lib/x64/libopenblas.dll.a")
+
+            #tc.variables["BLAS_DIR"] = "D:/temp/testopenblasOpenBLAS.0.2.14.1/lib/native"
+            #tc.variables["BLAS_LIBRARY"] = "D:/temp/testopenblasOpenBLAS.0.2.14.1/lib/native/lib/x64/libopenblas.dll.a"
+            #tc.variables["LAPACK_LIBRARY"] = "D:/temp/testopenblasOpenBLAS.0.2.14.1/lib/native/lib/x64/libopenblas.dll.a"
+
         if self.settings.os == "Linux":
             tc.variables["CMAKE_CONFIGURATION_TYPES"] = "Debug;Release;RelWithDebInfo"
 
@@ -81,6 +97,21 @@ class FaissConan(ConanFile):
         return cmake
 
     def build(self):
+        # list(TRANSFORM CMAKE_MODULE_PATH PREPEND ${{CMAKE_CURRENT_SOURCE_DIR}}/../cmake)
+#         if self.settings.os == "Windows":         
+#             line_to_replace = 'set(MKL_LIBRARIES)'
+#             tools.replace_in_file("faiss/cmake/FindMKL.cmake", line_to_replace,
+#                               '''{}
+# set(ENV{{MKLROOT}} "D:/intelmkl/intelmkl.devel.win-x64.2023.2.0.49496" ) 
+# message(STATUS "**************In faiss ${{CMAKE_CURRENT_LIST_FILE}} *************")
+# '''.format(line_to_replace))
+            
+#             line_to_replace = 'if(NOT ${_LIBRARIES})'
+#             tools.replace_in_file("faiss/cmake/FindMKL.cmake", line_to_replace,
+#                               '''message(STATUS "**************MKL In libs search ${{IT}} == ${{BLAS_mkl_MKLROOT}} == ${{BLAS_mkl_LIB_PATH_SUFFIXES}}*************")
+#                               {}
+# '''.format(line_to_replace))
+        
         # Build both release and debug for dual packaging
         cmake_debug = self._configure_cmake()
         cmake_debug.build(build_type="Debug")
@@ -117,7 +148,14 @@ class FaissConan(ConanFile):
         if ((build_type == "Debug") or (build_type == "RelWithDebInfo")) and (
             self.settings.compiler == "Visual Studio"
         ):
+            # the debug info
             self.copy("*.pdb", src=src_dir, dst=dst_lib, keep_path=False)
+
+        if self.settings.compiler == "Visual Studio":
+            # the blas dll to the package
+            blas_dir = PurePosixPath(self.BLAS_ROOT / "bin/x64/")
+            self.copy("*.dll", src=blas_dir, dst=dst_bin, keep_path=False)
+
 
     def package(self):
         # cleanup excess installs - this is a kludge TODO fix cmake

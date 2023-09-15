@@ -69,6 +69,9 @@ runs:
         conan profile update settings.compiler.version=${{ inputs.conan-visual-version }} action_build
         conan profile show action_build
 
+        nuget install OpenBLAS -Version 0.2.14.1 -OutputDirectory %TEMP%
+        set BLAS_ROOT=%TEMP%\OpenBLAS.0.2.14.1\lib\native
+
         conan create . faiss/1.7.3@lkeb/stable -pr:h action_build -pr:b action_build -s build_type=Release
 
       shell: cmd

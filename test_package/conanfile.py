@@ -34,6 +34,12 @@ class FaissTestConan(ConanFile):
         cmake.configure()
         cmake.build()
 
+    # Get package libraries into the executable directory
+    def imports(self):
+        self.copy("*.dll", dst=".", src="bin")
+        self.copy("*.dylib*", dst=".", src="lib")
+        self.copy('*.so*', dst='.', src='lib')
+
     def test(self):
         if not tools.cross_building(self.settings):
             if self.settings.os == "Windows":
