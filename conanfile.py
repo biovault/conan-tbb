@@ -76,6 +76,13 @@ class FaissConan(ConanFile):
         if self.settings.os == "Linux":
             tc.variables["CMAKE_CONFIGURATION_TYPES"] = "Debug;Release;RelWithDebInfo"
 
+        if self.settings.os == "Macos":
+            proc = subprocess.run(
+                "brew --prefix libomp", shell=True, capture_output=True
+            )
+            prefix_path = f"{proc.stdout.decode('UTF-8').strip()}"
+            tc.variables["OpenMP_ROOT"] = prefix_path
+
         return tc
 
     def layout(self):
