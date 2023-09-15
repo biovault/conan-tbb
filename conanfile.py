@@ -84,7 +84,7 @@ class FaissConan(ConanFile):
         self.cpp.package.bindirs = ["bin/$<CONFIG>"]
 
     def system_requirements(self):
-        if os_info.is_macos:
+        if self.settings.os == "Macos":
             installer = SystemPackageTool()
             installer.install("libomp")
 
