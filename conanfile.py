@@ -26,7 +26,7 @@ class FaissConan(ConanFile):
     # On Windows side load this dependency with nuget 
     # e.g. D:/temp/testopenblas/OpenBLAS.0.2.14.1/lib/native
     # with sub dirs bin libb include
-    BLAS_ROOT = Path(os.environ["BLAS_ROOT"])
+    BLAS_ROOT = Path(os.environ.get("BLAS_ROOT", ""))
 
     def source(self):
         self.run("git clone https://github.com/facebookresearch/faiss.git")
