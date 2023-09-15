@@ -4,6 +4,7 @@ from conans.tools import os_info, SystemPackageTool, get_env
 import os
 import shutil
 from pathlib import Path, PurePosixPath
+import subprocess
 
 required_conan_version = ">=1.51.0"
 
@@ -87,6 +88,9 @@ class FaissConan(ConanFile):
         if self.settings.os == "Macos":
             installer = SystemPackageTool()
             installer.install("libomp")
+            # Make the brew OpenMP findable with a symlink
+            proc = subprocess.run("brew --prefix libomp",  shell=True, capture_output=True)
+            subprocess.run(f"ln {proc.stdout.decode('UTF-8').strip()}/lib/libomp.dylib /usr/local/lib/libomp.dylib", shell=True)
 
     def generate(self):
         print("In generate")
