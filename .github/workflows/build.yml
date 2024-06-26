@@ -71,7 +71,7 @@ jobs:
             build-libcxx: libc++
 
           - name: Macos_xcode15.3
-            os: macos-14
+            os: macos-14-large
             build-compiler: apple-clang
             build-cversion: 15
             build-config: Release
