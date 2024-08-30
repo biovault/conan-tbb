@@ -83,6 +83,8 @@ class FaissConan(ConanFile):
             prefix_path = f"{proc.stdout.decode('UTF-8').strip()}"
             tc.variables["OpenMP_ROOT"] = prefix_path
 
+        tc.variables["CMAKE_CXX_STANDARD"] = "17"
+
         return tc
 
     def layout(self):
