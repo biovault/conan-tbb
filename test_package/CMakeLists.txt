@@ -15,4 +15,4 @@ find_package(OpenMP)
 add_executable(example example.cpp)
 target_link_libraries(example faiss)
 
-set(CMAKE_CXX_STANDARD 17)
+set_target_properties(example PROPERTIES CXX_STANDARD 17)
