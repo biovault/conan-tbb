@@ -1,4 +1,4 @@
-name: faiss conan package
+name: lz4 conan package
 
 on:
   push:

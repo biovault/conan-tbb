@@ -1,22 +1,22 @@
 from conans import ConanFile, tools
 from conan.tools.cmake import CMakeDeps, CMake, CMakeToolchain
-from conans.tools import os_info, SystemPackageTool, get_env
+from conans import tools
 import os
 import shutil
 from pathlib import Path, PurePosixPath
 import subprocess
 
-required_conan_version = ">=1.51.0"
+required_conan_version = ">=1.62.0"
 
 
-class FaissConan(ConanFile):
-    name = "faiss"
-    version = "1.8.0"
+class Lz4Conan(ConanFile):
+    name = "lz4"
+    version = "1.10.0"
     license = "MIT"
     author = "B. van Lew b.van_lew@lumc.nl"
-    url = "https://github.com/biovault/conan-faiss"
-    description = """Faiss is a library for efficient 
-    similarity search and clustering of dense vectors."""
+    url = "https://github.com/biovault/conan-lz4"
+    description = """LZ4 is lossless compression algorithm, providing 
+        compression speed > 500 MB/s per core, scalable with multi-cores CPU."""
     topics = ("clustering", "similarity")
     settings = "os", "compiler", "build_type", "arch"
     options = {"shared": [True, False], "testing": [True, False]}
@@ -30,10 +30,14 @@ class FaissConan(ConanFile):
     BLAS_ROOT = Path(os.environ.get("BLAS_ROOT", ""))
 
     def source(self):
-        self.run("git clone https://github.com/facebookresearch/faiss.git")
-        os.chdir("./faiss")
+        self.run("git clone https://github.com/lz4/lz4.git")
+        os.chdir("./lz4")
         self.run(f"git checkout tags/v{self.version}")
-        os.chdir("..")
+        os.chdir("build/cmake")
+        # need at least 3.11 for automatic directory creation in install - use 3.21 because this is standard for us.
+        tools.replace_in_file("CMakeLists.txt", "cmake_minimum_required(VERSION 3.5)", "cmake_minimum_required(VERSION 3.21)") 
+        # Prevent early resolution of CMAKE_INSTALL_LIBDIR in variable by prefix with \
+        tools.replace_in_file("CMakeLists.txt", "set(LZ4_PKG_INSTALLDIR \"${CMAKE_INSTALL_LIBDIR}/cmake/lz4\")", "set(LZ4_PKG_INSTALLDIR \"\${CMAKE_INSTALL_LIBDIR}/cmake/lz4\")")
 
     def _get_tc(self):
         """Generate the CMake configuration using
@@ -54,36 +58,13 @@ class FaissConan(ConanFile):
 
         if self.settings.os == "Linux":
             generator = "Ninja Multi-Config"
-
+        
         tc = CMakeToolchain(self, generator=generator)
-        tc.variables["FAISS_ENABLE_PYTHON "] = "OFF"
-        tc.variables["FAISS_ENABLE_GPU "] = "OFF"
-        tc.variables["BUILD_TESTING"] = "ON" if self.options.testing else "OFF"
-        tc.variables["BUILD_SHARED_LIBS"] = "ON" if self.options.shared else "OFF"
-
-        if self.settings.os == "Windows":
-            # tc.variables["MKL_ROOT_DIR"] = "D:/intelmkl"
-            tc.variables["BLA_STATIC"] = "ON"
-            tc.variables["BLAS_LIBRARY:FILEPATH"] = PurePosixPath(self.BLAS_ROOT / "lib/x64/libopenblas.dll.a")
-            tc.variables["BLAS_LIBRARIES"] = PurePosixPath(self.BLAS_ROOT /  "lib/x64/libopenblas.dll.a")
-            tc.variables["LAPACK_LIBRARY:FILEPATH"] = PurePosixPath(self.BLAS_ROOT / "lib/x64/libopenblas.dll.a")
-            tc.variables["LAPACK_LIBRARIES"] = PurePosixPath(self.BLAS_ROOT / "lib/x64/libopenblas.dll.a")
-
-            #tc.variables["BLAS_DIR"] = "D:/temp/testopenblasOpenBLAS.0.2.14.1/lib/native"
-            #tc.variables["BLAS_LIBRARY"] = "D:/temp/testopenblasOpenBLAS.0.2.14.1/lib/native/lib/x64/libopenblas.dll.a"
-            #tc.variables["LAPACK_LIBRARY"] = "D:/temp/testopenblasOpenBLAS.0.2.14.1/lib/native/lib/x64/libopenblas.dll.a"
-
         if self.settings.os == "Linux":
             tc.variables["CMAKE_CONFIGURATION_TYPES"] = "Debug;Release;RelWithDebInfo"
 
-        if self.settings.os == "Macos":
-            proc = subprocess.run(
-                "brew --prefix libomp", shell=True, capture_output=True
-            )
-            prefix_path = f"{proc.stdout.decode('UTF-8').strip()}"
-            tc.variables["OpenMP_ROOT"] = prefix_path
-
         tc.variables["CMAKE_CXX_STANDARD"] = "17"
+        # tc.variables["LZ4_BUNDLED_MODE"] = "True"
 
         return tc
 
@@ -93,13 +74,6 @@ class FaissConan(ConanFile):
         self.cpp.package.libdirs = ["lib/$<CONFIG>"]
         self.cpp.package.bindirs = ["bin/$<CONFIG>"]
 
-    def system_requirements(self):
-        if self.settings.os == "Macos":
-            installer = SystemPackageTool()
-            installer.install("libomp")
-            # Make the brew OpenMP findable with a symlink
-            proc = subprocess.run("brew --prefix libomp",  shell=True, capture_output=True)
-            subprocess.run(f"ln {proc.stdout.decode('UTF-8').strip()}/lib/libomp.dylib /usr/local/lib/libomp.dylib", shell=True)
 
     def generate(self):
         print("In generate")
@@ -110,38 +84,23 @@ class FaissConan(ConanFile):
 
     def _configure_cmake(self):
         cmake = CMake(self)
-        cmake.configure(build_script_folder="faiss")
+        cmake.configure(build_script_folder="lz4/build/cmake")
         cmake.verbose = True
         return cmake
 
     def build(self):
-        # list(TRANSFORM CMAKE_MODULE_PATH PREPEND ${{CMAKE_CURRENT_SOURCE_DIR}}/../cmake)
-#         if self.settings.os == "Windows":         
-#             line_to_replace = 'set(MKL_LIBRARIES)'
-#             tools.replace_in_file("faiss/cmake/FindMKL.cmake", line_to_replace,
-#                               '''{}
-# set(ENV{{MKLROOT}} "D:/intelmkl/intelmkl.devel.win-x64.2023.2.0.49496" ) 
-# message(STATUS "**************In faiss ${{CMAKE_CURRENT_LIST_FILE}} *************")
-# '''.format(line_to_replace))
-            
-#             line_to_replace = 'if(NOT ${_LIBRARIES})'
-#             tools.replace_in_file("faiss/cmake/FindMKL.cmake", line_to_replace,
-#                               '''message(STATUS "**************MKL In libs search ${{IT}} == ${{BLAS_mkl_MKLROOT}} == ${{BLAS_mkl_LIB_PATH_SUFFIXES}}*************")
-#                               {}
-# '''.format(line_to_replace))
-        
         # Build both release and debug for dual packaging
         cmake_debug = self._configure_cmake()
         cmake_debug.build(build_type="Debug")
-        cmake_debug.install(build_type="Debug")
+        # cmake_debug.install(build_type="Debug")
 
         cmake_release = self._configure_cmake()
         cmake_release.build(build_type="Release")
-        cmake_release.install(build_type="Release")
+        # cmake_release.install(build_type="Release")
 
         cmake_relwdeb = self._configure_cmake()
         cmake_relwdeb.build(build_type="RelWithDebInfo")
-        cmake_relwdeb.install(build_type="RelWithDebInfo")
+        # cmake_relwdeb.install(build_type="RelWithDebInfo")
 
     # Package has no build type marking
     def package_id(self):
@@ -155,35 +114,24 @@ class FaissConan(ConanFile):
         self.cpp_info.set_property("cmake_config_file", True)
 
     def _pkg_bin(self, build_type):
-        src_dir = f"{self.build_folder}/lib/{build_type}"
-        dst_lib = f"lib/{build_type}"
-        dst_bin = f"bin/{build_type}"
+        cmake = self._configure_cmake()
+        cmake.install(build_type=build_type)
 
-        self.copy("*.dll", src=src_dir, dst=dst_bin, keep_path=False)
-        self.copy("*.so", src=src_dir, dst=dst_lib, keep_path=False)
-        self.copy("*.dylib", src=src_dir, dst=dst_lib, keep_path=False)
-        self.copy("*.a", src=src_dir, dst=dst_lib, keep_path=False)
+        src_dir = f"{build_type}"
+        dst_lib = f"lib/{build_type}"
+        #dst_bin = f"bin/{build_type}"
+
+        #self.copy("*.lib", src=src_dir, dst=dst_lib, keep_path=False)
+        #self.copy("*.a", src=src_dir, dst=dst_lib, keep_path=False)
+        #self.copy("*.exe", src=src_dir, dst=dst_bin, keep_path=False)
         if ((build_type == "Debug") or (build_type == "RelWithDebInfo")) and (
             self.settings.compiler == "Visual Studio"
         ):
             # the debug info
             self.copy("*.pdb", src=src_dir, dst=dst_lib, keep_path=False)
 
-        if self.settings.compiler == "Visual Studio":
-            # the blas dll to the package
-            blas_dir = PurePosixPath(self.BLAS_ROOT / "bin/x64/")
-            self.copy("*.dll", src=blas_dir, dst=dst_bin, keep_path=False)
-
-
     def package(self):
-        # cleanup excess installs - this is a kludge TODO fix cmake
-        print("cleanup")
-        for child in Path(self.package_folder, "lib").iterdir():
-            if child.is_file():
-                child.unlink()
-        print("end cleanup")
-        self.copy("*.h", src="faiss/src/cpp", dst="include", keep_path=True)
-        self.copy("*.hpp", src="faiss/src/cpp", dst="include", keep_path=True)
+        #self.copy("*.h", src="lz4/lib", dst="include", keep_path=True)
 
         # Debug
         self._pkg_bin("Debug")

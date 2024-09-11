@@ -5,8 +5,8 @@ from pathlib import Path
 import subprocess
 
 
-class FaissTestConan(ConanFile):
-    name = "FaissTest"
+class Lz4TestConan(ConanFile):
+    name = "LZ4Test"
     settings = "os", "compiler", "build_type", "arch"
     generators = "CMakeDeps"
     # requires = ("hdf5/1.12.1", "lz4/1.9.2")
@@ -15,16 +15,10 @@ class FaissTestConan(ConanFile):
     def generate(self):
         print("Generating toolchain")
         tc = CMakeToolchain(self)
-        tc.variables["faiss_ROOT"] = Path(
-            self.deps_cpp_info["faiss"].rootpath
+        tc.variables["lz4_ROOT"] = Path(
+            self.deps_cpp_info["lz4"].rootpath
         ).as_posix()
-        # if self.settings.os == "Macos":
-        #     proc = subprocess.run(
-        #         "brew --prefix libomp", shell=True, capture_output=True
-        #     )
-        #     tc.variables["OpenMP_ROOT"] = Path(
-        #         proc.stdout.decode("UTF-8").strip()
-        #     ).as_posix()
+
         tc.generate()
         deps = CMakeDeps(self)
         deps.generate()

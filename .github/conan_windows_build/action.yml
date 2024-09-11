@@ -24,7 +24,7 @@ runs:
     - name: Install conan & build configuration
       run: |
         pip install wheel
-        pip install conan~=1.54.0
+        pip install conan~=1.64.0
         pip install "markupsafe<2.1"
         pip install -Iv cmake>=3.17
         pip install h5py
@@ -72,7 +72,7 @@ runs:
         nuget install OpenBLAS -Version 0.2.14.1 -OutputDirectory %TEMP%
         set BLAS_ROOT=%TEMP%\OpenBLAS.0.2.14.1\lib\native
 
-        conan create . faiss/1.8.0@lkeb/stable -pr:h action_build -pr:b action_build -s build_type=Release
+        conan create . lz4/1.10.0@lkeb/stable -pr:h action_build -pr:b action_build -s build_type=Release
 
       shell: cmd
       env:
