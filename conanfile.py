@@ -11,7 +11,7 @@ required_conan_version = ">=1.51.0"
 
 class FaissConan(ConanFile):
     name = "faiss"
-    version = "1.7.3"
+    version = "1.8.0"
     license = "MIT"
     author = "B. van Lew b.van_lew@lumc.nl"
     url = "https://github.com/biovault/conan-faiss"
