@@ -16,7 +16,7 @@
 using namespace faiss; 
 
 // 64-bit int
-using idx_t = faiss::Index::idx_t;  //  corrected from original example by addition of Index
+using idx_t = faiss::idx_t;  //  corrected from original example by addition of Index
 
 int main() {
     int d = 64;      // dimension
