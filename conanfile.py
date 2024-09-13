@@ -34,11 +34,23 @@ class Lz4Conan(ConanFile):
         os.chdir("./lz4")
         self.run(f"git checkout tags/v{self.version}")
         os.chdir("build/cmake")
-        # need at least 3.11 for automatic directory creation in install - use 3.21 because this is standard for us.
-        tools.replace_in_file("CMakeLists.txt", "cmake_minimum_required(VERSION 3.5)", "cmake_minimum_required(VERSION 3.21)") 
         # Prevent early resolution of CMAKE_INSTALL_LIBDIR in variable by prefix with \
         tools.replace_in_file("CMakeLists.txt", "set(LZ4_PKG_INSTALLDIR \"${CMAKE_INSTALL_LIBDIR}/cmake/lz4\")", "set(LZ4_PKG_INSTALLDIR \"\${CMAKE_INSTALL_LIBDIR}/cmake/lz4\")")
-
+        # Allow linking against lz4::lz4 
+        tools.replace_in_file("lz4Config.cmake.in", """
+include( "${CMAKE_CURRENT_LIST_DIR}/lz4Targets.cmake" )""", """
+include( "${CMAKE_CURRENT_LIST_DIR}/lz4Targets.cmake" )
+if(NOT TARGET lz4::lz4)
+    add_library(lz4::lz4 INTERFACE IMPORTED)
+    if("@BUILD_SHARED_LIBS@")
+        set_target_properties(lz4::lz4 PROPERTIES INTERFACE_LINK_LIBRARIES LZ4::lz4_shared)
+    else()
+        set_target_properties(lz4::lz4 PROPERTIES INTERFACE_LINK_LIBRARIES LZ4::lz4_static)
+    endif()
+endif()""")
+        
+    
+    
     def _get_tc(self):
         """Generate the CMake configuration using
         multi-config generators on all platforms, as follows:
@@ -64,7 +76,7 @@ class Lz4Conan(ConanFile):
             tc.variables["CMAKE_CONFIGURATION_TYPES"] = "Debug;Release;RelWithDebInfo"
 
         tc.variables["CMAKE_CXX_STANDARD"] = "17"
-        # tc.variables["LZ4_BUNDLED_MODE"] = "True"
+        tc.variables["BUILD_STATIC_LIBS"] = "True"
 
         return tc
 
@@ -92,15 +104,12 @@ class Lz4Conan(ConanFile):
         # Build both release and debug for dual packaging
         cmake_debug = self._configure_cmake()
         cmake_debug.build(build_type="Debug")
-        # cmake_debug.install(build_type="Debug")
 
         cmake_release = self._configure_cmake()
         cmake_release.build(build_type="Release")
-        # cmake_release.install(build_type="Release")
 
         cmake_relwdeb = self._configure_cmake()
         cmake_relwdeb.build(build_type="RelWithDebInfo")
-        # cmake_relwdeb.install(build_type="RelWithDebInfo")
 
     # Package has no build type marking
     def package_id(self):
@@ -121,9 +130,10 @@ class Lz4Conan(ConanFile):
         dst_lib = f"lib/{build_type}"
         #dst_bin = f"bin/{build_type}"
 
-        #self.copy("*.lib", src=src_dir, dst=dst_lib, keep_path=False)
-        #self.copy("*.a", src=src_dir, dst=dst_lib, keep_path=False)
-        #self.copy("*.exe", src=src_dir, dst=dst_bin, keep_path=False)
+        #self.copy("*.lib", dst=dst_lib, keep_path=False)
+        #self.copy("*.a", dst=dst_lib, keep_path=False)
+        #self.copy("*.exe", dst=dst_bin, keep_path=False)
+        #self.copy("*.dll", dst=dst_bin, keep_path=False)
         if ((build_type == "Debug") or (build_type == "RelWithDebInfo")) and (
             self.settings.compiler == "Visual Studio"
         ):
@@ -132,10 +142,15 @@ class Lz4Conan(ConanFile):
 
     def package(self):
         #self.copy("*.h", src="lz4/lib", dst="include", keep_path=True)
-
+        print(f"********** package dir {self.package_folder}")
         # Debug
         self._pkg_bin("Debug")
         # Release
         self._pkg_bin("Release")
         # RelWithDebInfo
         self._pkg_bin("RelWithDebInfo")
+        # In lz4Targets.cmake th variable _IMPORT_PATH assumes that the files 
+        # are in lib/cmake/lz4 one level deeper than cmake/lz4
+        # Move cmake dir under lib.
+        shutil.move(Path(self.package_folder, "cmake"), Path(self.package_folder, "lib", "cmake"))
+

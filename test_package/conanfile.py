@@ -9,14 +9,15 @@ class Lz4TestConan(ConanFile):
     name = "LZ4Test"
     settings = "os", "compiler", "build_type", "arch"
     generators = "CMakeDeps"
-    # requires = ("hdf5/1.12.1", "lz4/1.9.2")
+    requires = ("lz4/1.10.0")
     exports = "CMakeLists.txt", "example.cpp"
 
     def generate(self):
         print("Generating toolchain")
         tc = CMakeToolchain(self)
+        # Use the packaged cmake files in the test
         tc.variables["lz4_ROOT"] = Path(
-            self.deps_cpp_info["lz4"].rootpath
+            self.deps_cpp_info["lz4"].rootpath, "lib", "cmake", "lz4"
         ).as_posix()
 
         tc.generate()
@@ -25,8 +26,8 @@ class Lz4TestConan(ConanFile):
 
     def build(self):
         cmake = CMake(self)
-        cmake.configure()
-        cmake.build()
+        cmake.configure() # cli_args=["--trace-expand", "--trace-format=human"])
+        cmake.build() # cli_args=["--verbose"])
 
     # Get package libraries into the executable directory
     def imports(self):
