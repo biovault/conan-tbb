@@ -1,2 +1,2 @@
-# conan-lz4
-Build the lz4 library for artifactory
+# conan-tbb
+Build the tbb library for artifactory. Uses oneTBB as the source.

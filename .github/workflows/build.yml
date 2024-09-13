@@ -1,4 +1,4 @@
-name: lz4 conan package
+name: tbb conan package
 
 on:
   push:

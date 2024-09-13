@@ -5,19 +5,19 @@ from pathlib import Path
 import subprocess
 
 
-class Lz4TestConan(ConanFile):
-    name = "LZ4Test"
+class TbbTestConan(ConanFile):
+    name = "TBBTest"
     settings = "os", "compiler", "build_type", "arch"
     generators = "CMakeDeps"
-    requires = ("lz4/1.10.0")
+    requires = ("tbb/2021.13.0")
     exports = "CMakeLists.txt", "example.cpp"
 
     def generate(self):
         print("Generating toolchain")
         tc = CMakeToolchain(self)
         # Use the packaged cmake files in the test
-        tc.variables["lz4_ROOT"] = Path(
-            self.deps_cpp_info["lz4"].rootpath, "lib", "cmake", "lz4"
+        tc.variables["TBB_ROOT"] = Path(
+            self.deps_cpp_info["tbb"].rootpath, "lib", "cmake", "TBB"
         ).as_posix()
 
         tc.generate()

@@ -1,14 +1,13 @@
-// Code copied from lz4/examples/printVersion.c
-
-// LZ4 trivial example : print Library version number
-// by Takayuki Matsuoka
+// Simple TBB interface funcs
 
 #include <stdio.h>
-#include "lz4.h"
+#include <iostream>
+#include "oneapi/tbb/tick_count.h"
 
 int main(int argc, char** argv)
 {
 	(void)argc; (void)argv;
-    printf("Hello World ! LZ4 Library version = %d\n", LZ4_versionNumber());
+    oneapi::tbb::tick_count t0 = oneapi::tbb::tick_count::now();
+    std::cout << "TBB tick count resolution: " << t0.resolution() << std::endl;
     return 0;
 }

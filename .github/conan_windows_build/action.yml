@@ -72,7 +72,7 @@ runs:
         nuget install OpenBLAS -Version 0.2.14.1 -OutputDirectory %TEMP%
         set BLAS_ROOT=%TEMP%\OpenBLAS.0.2.14.1\lib\native
 
-        conan create . lz4/1.10.0@lkeb/stable -pr:h action_build -pr:b action_build -s build_type=Release
+        conan create . tbb/2021.13.0@lkeb/stable -pr:h action_build -pr:b action_build -s build_type=Release
 
       shell: cmd
       env:
